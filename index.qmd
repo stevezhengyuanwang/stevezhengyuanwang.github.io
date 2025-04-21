@@ -1,0 +1,418 @@
+---
+title: "An Analysis on the Provided Dataset"
+format: html
+editor: visual
+---
+
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Setting plot style
+sns.set(style="whitegrid")
+
+# Load the dataset
+file_path = 'security_incidents.csv'  # Adjust path as needed
+df = pd.read_csv(file_path)
+
+# Display basic information about the dataset
+df.info()
+
+# Display first few rows of the dataset
+df.head()
+```
+
+```{python}
+import pandas as pd
+
+# Assuming your original DataFrame is 'df'
+attack_summary = df.groupby('Means of attack').agg({
+    'Total killed': 'sum',
+    'Total wounded': 'sum'
+}).reset_index()
+
+# Add a 'Count' column to represent the number of incidents per attack type
+attack_summary['Count'] = df['Means of attack'].value_counts().reindex(attack_summary['Means of attack']).values
+```
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load the dataset
+file_path = 'security_incidents.csv'
+df = pd.read_csv(file_path)
+
+# Convert 'Year' and 'Month' columns to numeric for analysis
+df['Year'] = pd.to_numeric(df['Year'], errors='coerce')
+df['Month'] = pd.to_numeric(df['Month'], errors='coerce')
+
+# Filter valid years and months (Starting from 1997)
+df = df[(df['Year'] >= 1997) & (df['Year'] <= 2024)]
+df = df[df['Month'].between(1, 12)]
+
+# Create a 'Date' column in the original DataFrame for better time-series analysis
+df['Date'] = pd.to_datetime(df[['Year', 'Month']].assign(Day=1))
+
+# 📅 Line Plot: Incidents Over Time (Yearly)
+yearly_counts = df.groupby('Year').size().reset_index(name='Number of Incidents')
+
+fig1 = px.line(
+    yearly_counts,
+    x='Year',
+    y='Number of Incidents',
+    title='Number of Incidents Over Time (Yearly)',
+    template='plotly_dark',
+    labels={'Number of Incidents': 'Number of Incidents'},
+    markers=True
+)
+fig1.update_traces(line=dict(width=3))
+fig1.update_layout(title_font=dict(size=24, color='white'))
+fig1.show()
+
+
+# 📅 Seasonality Analysis (Bar Plot)
+df['Season'] = pd.cut(df['Month'], bins=[0, 3, 6, 9, 12], labels=['Winter', 'Spring', 'Summer', 'Autumn'])
+seasonal_counts = df.groupby(['Year', 'Season']).size().reset_index(name='Number of Incidents')
+
+fig3 = px.bar(
+    seasonal_counts,
+    x='Year',
+    y='Number of Incidents',
+    color='Season',
+    title='Seasonal Trends of Incidents Over Time',
+    template='plotly_dark',
+    height=700,
+    color_discrete_sequence=px.colors.sequential.Viridis
+)
+fig3.update_layout(title_font=dict(size=24, color='white'))
+fig3.show()
+```
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
+# Load the dataset
+file_path = 'security_incidents.csv'
+df = pd.read_csv(file_path)
+
+# Convert 'Year' and 'Month' columns to numeric for analysis
+df['Year'] = pd.to_numeric(df['Year'], errors='coerce')
+df['Month'] = pd.to_numeric(df['Month'], errors='coerce')
+
+# Filter valid years and months (Starting from 1997)
+df = df[(df['Year'] >= 1997) & (df['Year'] <= 2024)]
+df = df[df['Month'].between(1, 12)]
+
+# Create a 'Date' column in the original DataFrame for better time-series analysis
+df['Date'] = pd.to_datetime(df[['Year', 'Month']].assign(Day=1))
+
+# 📅 Monthly Incidents Over Time
+monthly_counts = df.groupby(['Date']).size().reset_index(name='Number of Incidents')
+
+# Define major geopolitical events
+events = {
+    '1997-05-11': 'Second Congo War (1997)',
+    '1999-03-24': 'Kosovo War - NATO Bombing (1999)',
+    '2000-10-12': 'USS Cole Bombing (2000)',
+    '2001-09-11': '9/11 Attacks & War on Terror (2001)',
+    '2003-03-20': 'Invasion of Iraq (2003)',
+    '2004-03-11': 'Madrid Train Bombings (2004)',
+    '2006-07-12': 'Israel-Hezbollah War (2006)',
+    '2007-12-27': 'Assassination of Benazir Bhutto (2007)',
+    '2008-11-26': 'Mumbai Terror Attacks (2008)',
+    '2011-03-15': 'Syrian Civil War Begins (2011)',
+    '2011-12-17': 'US Withdrawal from Iraq (2011)',
+    '2014-04-01': 'Rise of ISIS (2014)',
+    '2014-03-01': 'Annexation of Crimea by Russia (2014)',
+    '2015-03-26': 'Saudi Intervention in Yemen (2015)',
+    '2016-07-15': 'Failed Coup Attempt in Turkey (2016)',
+    '2017-10-17': 'ISIS Defeated in Raqqa (2017)',
+    '2019-04-11': 'Sudanese Revolution (2019)',
+    '2020-01-01': 'COVID-19 Pandemic (2020)',
+    '2022-02-24': 'Russia-Ukraine Conflict (2022)',
+    '2023-10-07': 'Gaza War (2023)'
+}
+
+# Adding event information to a DataFrame for better hover interaction
+events_df = pd.DataFrame({
+    'Date': pd.to_datetime(list(events.keys())),
+    'Event': list(events.values())
+})
+
+# Adding a column to specify incident count as 0 for plotting purposes
+events_df['Number of Incidents'] = 0
+
+# Plotting the Time-Series Plot
+fig2 = px.line(
+    monthly_counts,
+    x='Date',
+    y='Number of Incidents',
+    title='Incident Count with Major Events in Yellow',
+    template='plotly_dark',
+    labels={'Number of Incidents': 'Number of Incidents'},
+    markers=True,
+    color_discrete_sequence=['#FF4136']
+)
+
+fig2.update_traces(line=dict(width=3))
+
+# Add vertical lines as hover-enabled markers
+for index, row in events_df.iterrows():
+    fig2.add_vline(
+        x=row['Date'],
+        line_width=2,
+        line_dash="dash",
+        line_color="yellow"
+    )
+    fig2.add_trace(go.Scatter(
+        x=[row['Date']],
+        y=[monthly_counts['Number of Incidents'].max() * 0.95],
+        mode="markers",
+        marker=dict(color="yellow", size=8, symbol="triangle-up"),
+        hovertext=row['Event'],
+        hoverinfo="text",
+        showlegend=False  # ✅ Removes the legend on the right
+    ))
+
+fig2.update_layout(title_font=dict(size=24, color='white'))
+fig2.show()
+```
+
+The temporal analysis of incidents involving aid workers over time reveals a clear trend of increasing violence and instability, with noticeable spikes corresponding to major geopolitical events. The **line plot of yearly incidents** shows a consistent upward trajectory from 1997 to 2024, with the number of reported incidents climbing significantly after 2010. This rise aligns with several key conflict events, including the **Invasion of Iraq (2003)**, **Syrian Civil War (2011)**, and the **Ukraine War(2022)**. Each of these events corresponds with noticeable spikes or upward trends in the data, particularly the years immediately following these high-profile conflicts.
+
+The **stacked bar plot illustrating seasonal trends** highlights that incidents do not follow a strict seasonal pattern but rather fluctuate significantly year over year. The surge in incidents post-2010 remains consistent across all seasons, suggesting that the overall escalation of violence is not confined to particular times of the year but rather reflects broader geopolitical instability. The substantial increase during 2024 also indicates the continuation of these dangerous trends.
+
+The **interactive timeline plot**, which overlays major international conflicts as yellow dotted lines and arrows, provides more granular insight into the relationship between global events and incident frequencies. Clear peaks in the incident count coincide with events like the **Syrian Civil War’s beginning in 2011**, the **Annexation of Crimea by Russia in 2014**, and the **Gaza War in 2023**. While not all conflict events correlate with immediate spikes, many do appear to coincide with or precede noticeable increases in aid worker-related incidents. This suggests that broader geopolitical crises contribute significantly to the operational hazards faced by aid organizations.
+
+The findings suggest that aid organizations need to enhance their risk assessment frameworks to better anticipate spikes in violence associated with major geopolitical events. This could involve **closer monitoring of developing conflicts**, **collaboration with regional experts**, and **preemptive security measures when conflict-prone regions show signs of escalating tensions**. Additionally, the lack of seasonal patterns in the data implies that aid agencies cannot rely on predictable “safe” periods and must maintain heightened vigilance year-round. 
+
+Furthermore, the clear trend of escalating violence over time necessitates **greater investments in protective infrastructure, training, and data-sharing networks**. By correlating incident data with significant international events, aid agencies can better anticipate future risks and adjust their strategies accordingly.
+
+
+```{python}
+import plotly.express as px
+import plotly.graph_objects as go
+
+# Pie Chart for Total Fatalities by Attack Type
+fig1 = px.pie(
+    attack_summary,
+    values='Total killed',
+    names='Means of attack',
+    title='Total Fatalities by Attack Type',
+    color_discrete_sequence=px.colors.sequential.Magma,
+    hole=0.4,
+    template='plotly_dark'
+)
+fig1.update_traces(textinfo='percent+label')
+fig1.update_layout(
+    title_font=dict(size=24, family='Arial', color='white'),
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='#1e1e1e',
+    font=dict(color='white')
+)
+fig1.show()
+
+# Pie Chart for Total Injuries by Attack Type
+fig2 = px.pie(
+    attack_summary,
+    values='Total wounded',
+    names='Means of attack',
+    title='Total Injuries by Attack Type',
+    color_discrete_sequence=px.colors.sequential.Cividis,
+    hole=0.4,
+    template='plotly_dark'
+)
+fig2.update_traces(textinfo='percent+label')
+fig2.update_layout(
+    title_font=dict(size=24, family='Arial', color='white'),
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='#1e1e1e',
+    font=dict(color='white')
+)
+fig2.show()
+
+# Enhanced Interactive Bubble Chart for Attack Type Impact
+fig3 = px.scatter(
+    attack_summary,
+    x='Total wounded',
+    y='Total killed',
+    size='Count',
+    color='Means of attack',
+    title='Attack Type Impact: Injuries vs. Fatalities',
+    labels={'Total wounded':'Total Injuries', 'Total killed':'Total Fatalities'},
+    hover_name='Means of attack',
+    color_continuous_scale=px.colors.sequential.Plasma,
+    height=800,
+    template='plotly_dark'
+)
+fig3.update_layout(
+    title_font=dict(size=24, family='Arial', color='white'),
+    xaxis=dict(showgrid=True, gridwidth=1, gridcolor='rgba(255, 255, 255, 0.1)'),
+    yaxis=dict(showgrid=True, gridwidth=1, gridcolor='rgba(255, 255, 255, 0.1)'),
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='#1e1e1e',
+    font=dict(color='white')
+)
+fig3.show()
+```
+
+The charts reveal some pretty alarming trends when it comes to how different types of attacks impact aid workers. Looking at the fatalities pie chart, shootings are by far the most deadly, making up about **35.2% of all fatalities**. After that, **Unknown attacks (20.9%)** and **Aerial bombardments (18%)** follow as major killers. It’s clear that shootings are especially dangerous and are likely to be fatal more often than other methods. When it comes to injuries, though, the picture shifts a bit. The injury pie chart shows that **bodily assaults** cause the most injuries (**33.7%**), followed by shootings (**23.7%**). So while shootings are the deadliest, bodily assaults tend to leave more people hurt than killed.
+
+The bubble chart adds another layer to this analysis, comparing both fatalities and injuries for each attack type. Unsurprisingly, **shootings** dominate again, with both a high number of fatalities and injuries. But what's interesting is that **bodily assaults**, despite being the most common cause of injuries, don’t result in nearly as many fatalities. Meanwhile, **aerial bombardments** and **vehicle-born IEDs** are definitely high-risk tactics that tend to cause significant harm when they occur. The chart helps us see how different attack types compare across two major dimensions—fatalities and injuries—giving a clearer sense of which tactics are truly the most dangerous.
+
+These findings definitely suggest some areas where aid agencies could step up their safety efforts. For one, since shootings and aerial bombardments are responsible for the most deaths, agencies working in conflict zones should focus on protection strategies that directly address those threats. That might mean using fortified buildings, armored vehicles, and having solid evacuation plans ready in areas prone to aerial attacks. On the other hand, the high rate of injuries from bodily assaults points to a need for better personal safety training and maybe even more protective gear for staff, especially local employees who might be more at risk. And then there’s the fact that so many incidents are labeled as “Unknown”—that’s a big data gap. Improving incident reporting through better **data-sharing and collaboration with local security organizations** could really help agencies understand the full scope of the dangers their workers face. Addressing these key issues could make a real difference in keeping aid workers safer.
+
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
+# Load the dataset
+file_path = 'security_incidents.csv'
+df = pd.read_csv(file_path)
+
+# Relevant columns for analysis
+perpetrator_data = df[['Actor type', 'UN', 'INGO', 'ICRC', 'NRCS and IFRC', 'NNGO', 'Other', 'Means of attack']]
+
+# Replace NaN with 0 (because they are counts)
+perpetrator_data.fillna(0, inplace=True)
+
+# Exclude 'Unknown' actor type for meaningful analysis
+filtered_data = perpetrator_data[perpetrator_data['Actor type'] != 'Unknown']
+
+# Ensure that the organization columns are numeric
+for col in ['UN', 'INGO', 'ICRC', 'NRCS and IFRC', 'NNGO', 'Other']:
+    filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce').fillna(0).astype(int)
+
+# Melt the data to organize by Actor type and Organization
+sunburst_data = filtered_data.melt(
+    id_vars=['Actor type'],
+    value_vars=['UN', 'INGO', 'ICRC', 'NRCS and IFRC', 'NNGO', 'Other'],
+    var_name='Organization', value_name='Personnel Count'
+)
+
+# Filter out rows where Personnel Count is zero
+sunburst_data = sunburst_data[sunburst_data['Personnel Count'] > 0]
+
+# Now, instead of counting rows, we sum the personnel counts
+sunburst_data = sunburst_data.groupby(['Actor type', 'Organization'])['Personnel Count'].sum().reset_index()
+
+# Plotting the Sunburst Chart
+fig1 = px.sunburst(
+    sunburst_data,
+    path=['Actor type', 'Organization'],
+    values='Personnel Count',
+    title='Attacker Analysis: Breakdown by Organization',
+    color='Personnel Count',
+    color_continuous_scale='Inferno',
+    template='plotly_dark',
+    height=700
+)
+fig1.update_layout(title_font=dict(size=28, color='white'))
+fig1.show()
+```
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+# Load the dataset
+file_path = 'security_incidents.csv'
+df = pd.read_csv(file_path)
+
+# Relevant columns for analysis
+perpetrator_data = df[['Actor type', 'UN', 'INGO', 'ICRC', 'NRCS and IFRC', 'NNGO', 'Other', 'Means of attack']]
+
+# Replace NaN with 0 (because they are counts)
+perpetrator_data.fillna(0, inplace=True)
+
+# Ensure organization columns are numeric
+for col in ['UN', 'INGO', 'ICRC', 'NRCS and IFRC', 'NNGO', 'Other']:
+    perpetrator_data[col] = pd.to_numeric(perpetrator_data[col], errors='coerce').fillna(0).astype(int)
+
+# Filter out 'Unknown' actor type for meaningful analysis
+filtered_data = perpetrator_data[perpetrator_data['Actor type'] != 'Unknown']
+
+# Preparing data for Sankey diagram by summing personnel counts
+links = []
+labels = list(filtered_data['Actor type'].unique()) + ['UN', 'INGO', 'ICRC', 'NRCS and IFRC', 'NNGO', 'Other']
+sources = []
+targets = []
+values = []
+
+for actor in filtered_data['Actor type'].unique():
+    for org in ['UN', 'INGO', 'ICRC', 'NRCS and IFRC', 'NNGO', 'Other']:
+        count = filtered_data.loc[filtered_data['Actor type'] == actor, org].sum()
+        if count > 0:
+            sources.append(labels.index(actor))
+            targets.append(labels.index(org))
+            values.append(count)
+
+fig2 = go.Figure(data=[go.Sankey(
+    node=dict(
+        pad=15,
+        thickness=30,
+        line=dict(color="black", width=0.5),
+        label=labels,
+        color="red"
+    ),
+    link=dict(
+        source=sources,
+        target=targets,
+        value=values,
+        color='rgba(200,200,200,0.6)'
+    )
+)])
+
+fig2.update_layout(
+    title_text="Attacker Analysis: Flow of Incidents by Organization",
+    font=dict(size=16, color='white'),
+    paper_bgcolor='#1e1e1e',
+    height=700,
+    width=800
+)
+fig2.show()
+```
+
+```{python}
+import plotly.express as px
+
+# Filter out rows where all organizations have zero personnel counts
+filtered_parallel_data = filtered_data[
+    (filtered_data[['UN', 'INGO', 'ICRC', 'NRCS and IFRC', 'NNGO', 'Other']].sum(axis=1) > 0)
+]
+
+# Parallel Categories Plot - only using non-zero values
+fig3 = px.parallel_categories(
+    filtered_parallel_data,
+    dimensions=['Actor type', 'Means of attack', 'UN', 'INGO', 'NNGO'],
+    color=filtered_parallel_data['Actor type'].apply(lambda x: hash(x) % 256),
+    title='Attacker Analysis: Relationships Across Actor Types, Attack Types, and Organizations (Excluding Unknown)',
+    color_continuous_scale='Viridis',
+    template='plotly_dark',
+    height=700
+)
+fig3.update_layout(
+    title_font=dict(size=28, color='white'),
+    font=dict(size=14, color='white')
+)
+fig3.show()
+```
+
+The charts reveal some pretty alarming trends when it comes to the perpetrators of violence against aid workers. The **Sunburst Chart** highlights that **Non-state armed groups**, particularly those labeled as **'Unknown'**, **'National'**, and **'Regional'**, are responsible for the majority of recorded incidents. What’s striking is how much of this violence is attributed to unknown actors, which makes up a large segment of the chart. This suggests a significant gap in documentation and identification of perpetrators. Additionally, **INGOs** and **NNGOs** are shown to be particularly vulnerable to attacks by these groups. Furthermore, **Criminal groups** and **Host-state actors** also feature prominently, though their involvement is generally less than that of non-state armed groups. The chart provides a clear snapshot of how different actor types interact with various organizations, with **INGOs** and **NNGOs** appearing most frequently, indicating a higher level of risk for those groups.
+
+The **Sankey Diagram** adds another dimension to the analysis, showing the flow of incidents from specific actor types to various organizations. Here, the connections between **Non-state armed groups** and **INGOs** are particularly strong, suggesting these organizations are prime targets. Additionally, **NNGOs** also see substantial exposure to these actors. Interestingly, **Criminal groups** appear to target **INGOs** more frequently than other organizations, which could be due to their resources or visibility in conflict zones. By visualizing the flow of incidents, the diagram provides insight into how different actor types interact with various organizations, revealing patterns that could inform more tailored security measures.
+
+The **Parallel Categories Plot** further illustrates the complexity of the threat landscape by examining the relationships between **actor types, means of attack, and affected organizations**. Unsurprisingly, tactics like **shootings and kidnappings** are common across various perpetrators, but more sophisticated tactics such as **IEDs, bombings, and complex attacks** are mainly associated with **Non-state armed groups**. This suggests that these groups may have better resources or training compared to other actors. Furthermore, **INGOs** and **NNGOs** continue to appear frequently across various attack types, which indicates they may face a broader range of threats compared to other organizations. The plot provides a useful comparison of how actor types, attack methods, and organizational vulnerabilities are interconnected.
+
+These findings suggest several areas where aid agencies could enhance their safety efforts. First, the prevalence of attacks from **Non-state armed groups** highlights the need for agencies, particularly **INGOs** and **NNGOs**, to develop robust security measures tailored to the tactics employed by these actors. This could involve enhanced training, improved communication systems, and greater collaboration with local communities to improve early-warning mechanisms. Second, the high number of incidents attributed to **'Unknown'** actors indicates a serious information gap. Agencies should invest in better data collection and reporting mechanisms, perhaps through **data-sharing agreements and collaboration with local security organizations**. Finally, the heavy targeting of **INGOs** by **Criminal groups** suggests the need for stronger physical and cyber-security measures, particularly around assets and personnel operating in high-risk areas. Addressing these issues could make a tangible difference in improving safety for aid workers worldwide.
