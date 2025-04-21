@@ -1,14 +1,32 @@
 ---
 title: "An Analysis on the Provided Dataset"
-format: html
+format:
+  html:
+    code-fold: true
+    code-summary: "Code"
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    warning: false
+    message: false
+execute:
+  warning: false
+  message: false
 editor: visual
 ---
 
+## Introduction
+
+This website presents an exploratory data analysis of global security incidents affecting humanitarian workers from 1997 to 2024. Using Python and interactive visualizations, the project dissects patterns in attack types, casualties, and regional trends over time. Through careful data wrangling and dynamic visuals, it highlights not only the frequency and severity of these incidents but also potential seasonal fluctuations and long-term trends. The goal is to offer clear insights that can aid NGOs, policy makers, and researchers in understanding risks in humanitarian operations.
+
+## Time Series Analysis
 
 ```{python}
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore")
 
 # Setting plot style
 sns.set(style="whitegrid")
@@ -16,12 +34,6 @@ sns.set(style="whitegrid")
 # Load the dataset
 file_path = 'security_incidents.csv'  # Adjust path as needed
 df = pd.read_csv(file_path)
-
-# Display basic information about the dataset
-df.info()
-
-# Display first few rows of the dataset
-df.head()
 ```
 
 ```{python}
@@ -59,7 +71,7 @@ df = df[df['Month'].between(1, 12)]
 # Create a 'Date' column in the original DataFrame for better time-series analysis
 df['Date'] = pd.to_datetime(df[['Year', 'Month']].assign(Day=1))
 
-# 📅 Line Plot: Incidents Over Time (Yearly)
+# Line Plot: Incidents Over Time (Yearly)
 yearly_counts = df.groupby('Year').size().reset_index(name='Number of Incidents')
 
 fig1 = px.line(
@@ -76,7 +88,7 @@ fig1.update_layout(title_font=dict(size=24, color='white'))
 fig1.show()
 
 
-# 📅 Seasonality Analysis (Bar Plot)
+# Seasonality Analysis (Bar Plot)
 df['Season'] = pd.cut(df['Month'], bins=[0, 3, 6, 9, 12], labels=['Winter', 'Spring', 'Summer', 'Autumn'])
 seasonal_counts = df.groupby(['Year', 'Season']).size().reset_index(name='Number of Incidents')
 
@@ -114,7 +126,7 @@ df = df[df['Month'].between(1, 12)]
 # Create a 'Date' column in the original DataFrame for better time-series analysis
 df['Date'] = pd.to_datetime(df[['Year', 'Month']].assign(Day=1))
 
-# 📅 Monthly Incidents Over Time
+# Monthly Incidents Over Time
 monthly_counts = df.groupby(['Date']).size().reset_index(name='Number of Incidents')
 
 # Define major geopolitical events
@@ -192,10 +204,11 @@ The **stacked bar plot illustrating seasonal trends** highlights that incidents 
 
 The **interactive timeline plot**, which overlays major international conflicts as yellow dotted lines and arrows, provides more granular insight into the relationship between global events and incident frequencies. Clear peaks in the incident count coincide with events like the **Syrian Civil War’s beginning in 2011**, the **Annexation of Crimea by Russia in 2014**, and the **Gaza War in 2023**. While not all conflict events correlate with immediate spikes, many do appear to coincide with or precede noticeable increases in aid worker-related incidents. This suggests that broader geopolitical crises contribute significantly to the operational hazards faced by aid organizations.
 
-The findings suggest that aid organizations need to enhance their risk assessment frameworks to better anticipate spikes in violence associated with major geopolitical events. This could involve **closer monitoring of developing conflicts**, **collaboration with regional experts**, and **preemptive security measures when conflict-prone regions show signs of escalating tensions**. Additionally, the lack of seasonal patterns in the data implies that aid agencies cannot rely on predictable “safe” periods and must maintain heightened vigilance year-round. 
+The findings suggest that aid organizations need to enhance their risk assessment frameworks to better anticipate spikes in violence associated with major geopolitical events. This could involve **closer monitoring of developing conflicts**, **collaboration with regional experts**, and **preemptive security measures when conflict-prone regions show signs of escalating tensions**. Additionally, the lack of seasonal patterns in the data implies that aid agencies cannot rely on predictable “safe” periods and must maintain heightened vigilance year-round.
 
 Furthermore, the clear trend of escalating violence over time necessitates **greater investments in protective infrastructure, training, and data-sharing networks**. By correlating incident data with significant international events, aid agencies can better anticipate future risks and adjust their strategies accordingly.
 
+## How Might We Make Workers Safer
 
 ```{python}
 import plotly.express as px
@@ -270,7 +283,7 @@ The bubble chart adds another layer to this analysis, comparing both fatalities 
 
 These findings definitely suggest some areas where aid agencies could step up their safety efforts. For one, since shootings and aerial bombardments are responsible for the most deaths, agencies working in conflict zones should focus on protection strategies that directly address those threats. That might mean using fortified buildings, armored vehicles, and having solid evacuation plans ready in areas prone to aerial attacks. On the other hand, the high rate of injuries from bodily assaults points to a need for better personal safety training and maybe even more protective gear for staff, especially local employees who might be more at risk. And then there’s the fact that so many incidents are labeled as “Unknown”—that’s a big data gap. Improving incident reporting through better **data-sharing and collaboration with local security organizations** could really help agencies understand the full scope of the dangers their workers face. Addressing these key issues could make a real difference in keeping aid workers safer.
 
-
+## Attacker and Victim Analysis
 
 ```{python}
 import pandas as pd
@@ -416,3 +429,7 @@ The **Sankey Diagram** adds another dimension to the analysis, showing the flow 
 The **Parallel Categories Plot** further illustrates the complexity of the threat landscape by examining the relationships between **actor types, means of attack, and affected organizations**. Unsurprisingly, tactics like **shootings and kidnappings** are common across various perpetrators, but more sophisticated tactics such as **IEDs, bombings, and complex attacks** are mainly associated with **Non-state armed groups**. This suggests that these groups may have better resources or training compared to other actors. Furthermore, **INGOs** and **NNGOs** continue to appear frequently across various attack types, which indicates they may face a broader range of threats compared to other organizations. The plot provides a useful comparison of how actor types, attack methods, and organizational vulnerabilities are interconnected.
 
 These findings suggest several areas where aid agencies could enhance their safety efforts. First, the prevalence of attacks from **Non-state armed groups** highlights the need for agencies, particularly **INGOs** and **NNGOs**, to develop robust security measures tailored to the tactics employed by these actors. This could involve enhanced training, improved communication systems, and greater collaboration with local communities to improve early-warning mechanisms. Second, the high number of incidents attributed to **'Unknown'** actors indicates a serious information gap. Agencies should invest in better data collection and reporting mechanisms, perhaps through **data-sharing agreements and collaboration with local security organizations**. Finally, the heavy targeting of **INGOs** by **Criminal groups** suggests the need for stronger physical and cyber-security measures, particularly around assets and personnel operating in high-risk areas. Addressing these issues could make a tangible difference in improving safety for aid workers worldwide.
+
+## Looking into the Future
+
+This analysis sheds light on the evolving landscape of security risks faced by humanitarian personnel over nearly three decades. By examining incident frequency, attack methods, casualty rates, and seasonal trends, we gain a clearer picture of when and how these threats occur. The visualizations reveal not only an upward trend in incidents but also nuanced variations tied to time and context. While this data-driven approach cannot fully capture the human toll behind each incident, it offers valuable insights that can inform risk mitigation strategies and operational planning for humanitarian organizations worldwide.
